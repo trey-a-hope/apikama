@@ -1,12 +1,11 @@
 from typing import Any
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 import requests
 import base64
-import json
 from email_validator import validate_email, EmailNotValidError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from models.client_config import ClientConfig
 from models.email_auth_request import EmailAuthRequest
 
 # uvicorn main:app --reload
@@ -29,25 +28,16 @@ app.add_middleware(
 )
 
 _proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
-
-class ClientConfig(BaseModel):
-    host: str
-    ssl: bool
-    serverKey: str
-    grpcPort: int # TODO: May not be required...
-    httpPort: int
     
-class AuthRequest(BaseModel):
-    client: ClientConfig
-    request: EmailAuthRequest
-    
+# NOTE: There isn't a "dev" mode technically right now.
+# Since I am not running the server locally.    
 # {
 #   "client": {
-#     "host": "127.0.0.1",
+#     "host": "24.144.85.68",
 #     "ssl": false,
 #     "serverKey": "defaultkey",
-#     "grpcPort": 8000,
-#     "httpPort": 8000
+#     "grpcPort": 7351,
+#     "httpPort": 7350
 #   },
 #   "request": {
 #     "email": "trey.a.hope@gmail.com",
@@ -63,11 +53,9 @@ async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
         auth: str = _encode_auth(f'{client.serverKey}:')
         print(f'Auth: {auth}')
                 
-        # baseUrl: str = _get_base_url(host=client.host, ssl=client.ssl, http_port=client.httpPort)
-        # print(f'Base URL: {baseUrl}')
-        
-        baseUrl: str = 'http://24.144.85.68:8000/v2/'
-        
+        baseUrl: str = _get_base_url(host=client.host, ssl=client.ssl, http_port=client.httpPort)
+        print(f'Base URL: {baseUrl}')
+                
         validate_email(request.email)
         print(f'Email {request.email} is valid.')
 
@@ -76,12 +64,14 @@ async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
             'Content-Type': 'application/json',
             'Authorization': f'Basic {auth}',
         }
+        print(f'Headers: {headers}')
 
         data: dict[str, Any] = {
             "email": request.email,
             "password": request.password,
             "create": request.create,
         }
+        print(f'Data: {data}')
 
         endpoint: str = f'{_proxy}{baseUrl}account/authenticate/email?username={request.username}'
         print(f'Endpoint: {endpoint}')
