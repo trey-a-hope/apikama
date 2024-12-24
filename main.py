@@ -4,6 +4,7 @@ import requests
 import base64
 import json
 from email_validator import validate_email, EmailNotValidError
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title='Gift Grab API',
@@ -11,6 +12,15 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",   # Swagger UI endpoint
     redoc_url="/redoc"  # ReDoc endpoint
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 auth_string = 'defaultkey:'  # This is your original string
