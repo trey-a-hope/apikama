@@ -32,8 +32,8 @@ app.add_middleware(
 )
 
 # TODO: Test this in Flutter, may not need proxy :)
-_proxy: str = ''
-# https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/    
+_proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
+#    
 
 # NOTE: There isn't a "dev" mode technically right now.
 # Since I am not running the server locally.    
