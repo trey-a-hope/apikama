@@ -11,9 +11,12 @@ from models.email_auth_request import EmailAuthRequest
 
 # uvicorn main:app --reload
 
+_title: str = 'Pykama API'
+_description: str = 'A free, Python-based API for the Nakama game server.'
+
 app: FastAPI = FastAPI(
-    title='Pykama',
-    description='Wrapper for the Nakama gaming server. (Need to update name.)',
+    title=_title,
+    description=_description,
     version="1.0.0",
     docs_url="/docs",   # Swagger UI endpoint
     redoc_url="/redoc"  # ReDoc endpoint
@@ -97,53 +100,53 @@ async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
     
 @app.get("/", response_class=HTMLResponse)
 async def default():
-    return """
+    html_content = f"""
     <html>
         <head>
-            <title>Pykama</title>
+            <title>{_title}</title>
             <style>
-                body {
+                body {{
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                     max-width: 800px;
                     margin: 0 auto;
                     padding: 2rem;
                     background: #f5f5f5;
-                }
-                .container {
+                }}
+                .container {{
                     background: white;
                     padding: 2rem;
                     border-radius: 8px;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                h1, h2 { color: #2d3748; }
-                .section {
+                }}
+                h1, h2 {{ color: #2d3748; }}
+                .section {{
                     background: #f7fafc;
                     padding: 1rem;
                     border-radius: 4px;
                     margin: 1rem 0;
-                }
-                .endpoint {
+                }}
+                .endpoint {{
                     background: #edf2f7;
                     padding: 0.5rem;
                     border-radius: 4px;
                     margin: 0.5rem 0;
-                }
-                .method {
+                }}
+                .method {{
                     display: inline-block;
                     padding: 0.25rem 0.5rem;
                     border-radius: 4px;
                     background: #4299e1;
                     color: white;
                     font-size: 0.875rem;
-                }
-                .links a {
+                }}
+                .links a {{
                     color: #4299e1;
                     text-decoration: none;
-                }
-                .links a:hover {
+                }}
+                .links a:hover {{
                     text-decoration: underline;
-                }
-                .todo-item {
+                }}
+                .todo-item {{
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
@@ -151,16 +154,16 @@ async def default():
                     background: #edf2f7;
                     border-radius: 4px;
                     margin: 0.5rem 0;
-                }
-                .todo-item::before {
+                }}
+                .todo-item::before {{
                     content: "⭕";
-                }
+                }}
             </style>
         </head>
         <body>
             <div class="container">
-                <h1>🎮 Pykama</h1>
-                <p>A Python-based backend service wrapper for the Nakama game server.</p>
+                <h1>🎮 {_title}</h1>
+                <p>{_description}</p>
                 <p>Handles CORS issues to enable web browser compatibility.</p>
                 <div class="section">
                     <h2>Documentation:</h2>
@@ -209,7 +212,9 @@ async def default():
         </body>
     </html>
     """
-    
+    return html_content
+
+
 # Convert auth string to base64 encoded string.
 def _encode_auth(auth_string: str) -> str:
    auth_bytes: bytes = auth_string.encode('utf-8')
