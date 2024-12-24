@@ -1,13 +1,14 @@
 from typing import Any
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 import requests
 import base64
-import json
 from email_validator import validate_email, EmailNotValidError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from models.client_config import ClientConfig
 from models.email_auth_request import EmailAuthRequest
+
+# uvicorn main:app --reload
 
 app: FastAPI = FastAPI(
     title='Gift Grab API',
@@ -26,31 +27,56 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-_authString: str = 'defaultkey:'   
-_AuthBytes: bytes = _authString.encode('utf-8')   
-_base64Auth: str = base64.b64encode(_AuthBytes).decode('utf-8') 
 _proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
-_baseUrl: str = 'http://24.144.85.68:7350/v2/'
+    
+# NOTE: There isn't a "dev" mode technically right now.
+# Since I am not running the server locally.    
+# {
+#   "client": {
+#     "host": "24.144.85.68",
+#     "ssl": false,
+#     "serverKey": "defaultkey",
+#     "grpcPort": 7351,
+#     "httpPort": 7350
+#   },
+#   "request": {
+#     "email": "trey.a.hope@gmail.com",
+#     "password": "Peachy4040",
+#     "username": "trey.codes",
+#     "create": true
+#   }
+# }
 
 @app.post("/authenticateEmail")
-async def authenticateEmail(request: EmailAuthRequest):
+async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
     try:
+        auth: str = _encode_auth(f'{client.serverKey}:')
+        print(f'Auth: {auth}')
+                
+        baseUrl: str = _get_base_url(host=client.host, ssl=client.ssl, http_port=client.httpPort)
+        print(f'Base URL: {baseUrl}')
+                
         validate_email(request.email)
+        print(f'Email {request.email} is valid.')
 
         headers: dict[str, str] = {
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'application/json',
-            'Authorization': f'Basic {_base64Auth}',
+            'Authorization': f'Basic {auth}',
         }
+        print(f'Headers: {headers}')
 
         data: dict[str, Any] = {
             "email": request.email,
             "password": request.password,
             "create": request.create,
         }
+        print(f'Data: {data}')
 
-        endpoint: str = f'{_baseUrl}account/authenticate/email?username={request.username}'
-        response: Any = requests.post(f'{_proxy}{endpoint}', headers=headers, json=data)
+        endpoint: str = f'{_proxy}{baseUrl}account/authenticate/email?username={request.username}'
+        print(f'Endpoint: {endpoint}')
+        
+        response: Any = requests.post(f'{endpoint}', headers=headers, json=data)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         return data
@@ -179,3 +205,13 @@ async def default():
         </body>
     </html>
     """
+    
+# Convert auth string to base64 encoded string.
+def _encode_auth(auth_string: str) -> str:
+   auth_bytes: bytes = auth_string.encode('utf-8')
+   return base64.b64encode(auth_bytes).decode('utf-8')
+
+# Generate base URL string for Nakama server.
+def _get_base_url(host: str, ssl: bool, http_port: int) -> str:
+   protocol: str = 'https' if ssl else 'http'
+   return f'{protocol}://{host}:{http_port}/v2/'
