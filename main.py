@@ -1,9 +1,8 @@
 from fastapi import FastAPI, HTTPException
-from nakama import Client
 
 app = FastAPI(
     title='Gift Grab API',
-    description='Interact with Nakama gaming server with these api methods.',
+    description='Wrapper for the Nakama gaming server.',
     version="1.0.0",
     docs_url="/docs",   # Swagger UI endpoint
     redoc_url="/redoc"  # ReDoc endpoint
