@@ -1,4 +1,9 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import requests
+import base64
+import json
+from email_validator import validate_email, EmailNotValidError
 
 app = FastAPI(
     title='Gift Grab API',
@@ -8,26 +13,51 @@ app = FastAPI(
     redoc_url="/redoc"  # ReDoc endpoint
 )
 
+auth_string = 'defaultkey:'  # This is your original string
+auth_bytes = auth_string.encode('utf-8')  # Convert to bytes
+base64_auth = base64.b64encode(auth_bytes).decode('utf-8')  # Encode and convert back to string
+ 
+_proxy = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
+_baseUrl = 'http://24.144.85.68:7350/v2/'
 
-# # Initialize Nakama client
-# nakama_client = nk_client(
-#     server_key="defaultkey",
-#     host="127.0.0.1",
-#     port="7350",
-#     ssl=False
-# )
+class EmailAuthRequest(BaseModel):
+    email: str
+    password: str
+    username: str
+    create: bool
 
-# @app.post("/login")
-# async def login(email: str, password: str):
-#     try:
-#         session = await nakama_client.authenticate_email(
-#             email=email,
-#             password=password,
-#             create=True
-#         )
-#         return {"token": session.token, "user_id": session.user_id}
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+@app.post("/authenticateEmail")
+async def authenticateEmail(request: EmailAuthRequest):
+    try:
+        validate_email(request.email)
+
+        headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json',
+            'Authorization': f'Basic {base64_auth}',
+        }
+
+        data = {
+            "email": request.email,
+            "password": request.password,
+            "create": request.create,
+        }
+
+        endpoint = f'{_baseUrl}account/authenticate/email?username={request.username}'
+        response = requests.post(f'{_proxy}{endpoint}', headers=headers, json=data)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except EmailNotValidError:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid email address format"
+        )
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to authenticate: {str(e)}"
+        )
 
 # @app.get("/player/{user_id}/stats")
 # async def get_player_stats(user_id: str, token: str):
