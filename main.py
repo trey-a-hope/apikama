@@ -101,7 +101,7 @@ async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
         response: Any = requests.post(f'{endpoint}', headers=headers, json=data)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
-        return AuthenticateEmailResponse(token=data['token'], refreshToken=data['refresh_token'])
+        return AuthenticateEmailResponse(token=data['token'], refresh_token=data['refresh_token'])
     except EmailNotValidError:
         raise HTTPException(
             status_code=422,
