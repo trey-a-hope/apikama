@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
@@ -41,22 +42,22 @@ async def authenticateEmail(request: EmailAuthRequest):
     try:
         validate_email(request.email)
 
-        headers = {
+        headers: dict[str, str] = {
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'application/json',
             'Authorization': f'Basic {base64_auth}',
         }
 
-        data = {
+        data: dict[str, Any] = {
             "email": request.email,
             "password": request.password,
             "create": request.create,
         }
 
-        endpoint = f'{_baseUrl}account/authenticate/email?username={request.username}'
-        response = await requests.post(f'{_proxy}{endpoint}', headers=headers, json=data)
+        endpoint: str = f'{_baseUrl}account/authenticate/email?username={request.username}'
+        response: Any = requests.post(f'{_proxy}{endpoint}', headers=headers, json=data)
         response.raise_for_status()
-        data = response.json()
+        data: dict[str, Any] = response.json()
         return data
     except EmailNotValidError:
         raise HTTPException(
