@@ -1,5 +1,5 @@
 from typing import Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Path
 import requests
 import base64
 from email_validator import validate_email, EmailNotValidError
@@ -31,8 +31,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-_proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
-    
+# TODO: Test this in Flutter, may not need proxy :)
+_proxy: str = ''
+# https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/    
+
 # NOTE: There isn't a "dev" mode technically right now.
 # Since I am not running the server locally.    
 # {
@@ -51,7 +53,20 @@ _proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
 #   }
 # }
 
+# TODO: This causes the two params to be seperated and throws off json parsing.
+#  = Path(title='Client Config', description='Configuration model for connecting to a Nakama server instance.')
+#  = Path(title='Email Auth Request', description='Request model for email-based authentication in Nakama.')
+
+@app.get('/getAccount',
+        tags=["Account"],
+        description='Retrieves the user\'s account information.',
+        # response_model=AuthenticateEmailResponse,
+        name='Get Account')
+async def getAccount(uid: str):
+    return {'account': 'trey'}
+
 @app.post("/authenticateEmail", 
+          tags=["Authentication"], 
           description='Authenticates a user\'s email credentials against the server.',
           response_model=AuthenticateEmailResponse,
           name='Authenticate Email')
@@ -86,7 +101,7 @@ async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
         response: Any = requests.post(f'{endpoint}', headers=headers, json=data)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
-        return data
+        return AuthenticateEmailResponse(token=data['token'], refreshToken=data['refresh_token'])
     except EmailNotValidError:
         raise HTTPException(
             status_code=422,
@@ -98,7 +113,9 @@ async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
             detail=f"Failed to authenticate: {str(e)}"
         )
     
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", 
+         response_class=HTMLResponse,
+         tags=["General"])
 async def default():
     html_content = f"""
     <html>
