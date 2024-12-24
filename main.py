@@ -6,8 +6,10 @@ import base64
 import json
 from email_validator import validate_email, EmailNotValidError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from models.email_auth_request import EmailAuthRequest
 
-app = FastAPI(
+app: FastAPI = FastAPI(
     title='Gift Grab API',
     description='Wrapper for the Nakama gaming server.',
     version="1.0.0",
@@ -24,18 +26,11 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-auth_string = 'defaultkey:'  # This is your original string
-auth_bytes = auth_string.encode('utf-8')  # Convert to bytes
-base64_auth = base64.b64encode(auth_bytes).decode('utf-8')  # Encode and convert back to string
- 
-_proxy = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
-_baseUrl = 'http://24.144.85.68:7350/v2/'
-
-class EmailAuthRequest(BaseModel):
-    email: str
-    password: str
-    username: str
-    create: bool
+_authString: str = 'defaultkey:'   
+_AuthBytes: bytes = _authString.encode('utf-8')   
+_base64Auth: str = base64.b64encode(_AuthBytes).decode('utf-8') 
+_proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
+_baseUrl: str = 'http://24.144.85.68:7350/v2/'
 
 @app.post("/authenticateEmail")
 async def authenticateEmail(request: EmailAuthRequest):
@@ -45,7 +40,7 @@ async def authenticateEmail(request: EmailAuthRequest):
         headers: dict[str, str] = {
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'application/json',
-            'Authorization': f'Basic {base64_auth}',
+            'Authorization': f'Basic {_base64Auth}',
         }
 
         data: dict[str, Any] = {
@@ -69,18 +64,118 @@ async def authenticateEmail(request: EmailAuthRequest):
             status_code=500,
             detail=f"Failed to authenticate: {str(e)}"
         )
+    
+@app.get("/", response_class=HTMLResponse)
+async def default():
+    return """
+    <html>
+        <head>
+            <title>Gift Grab API</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 2rem;
+                    background: #f5f5f5;
+                }
+                .container {
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                h1, h2 { color: #2d3748; }
+                .section {
+                    background: #f7fafc;
+                    padding: 1rem;
+                    border-radius: 4px;
+                    margin: 1rem 0;
+                }
+                .endpoint {
+                    background: #edf2f7;
+                    padding: 0.5rem;
+                    border-radius: 4px;
+                    margin: 0.5rem 0;
+                }
+                .method {
+                    display: inline-block;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 4px;
+                    background: #4299e1;
+                    color: white;
+                    font-size: 0.875rem;
+                }
+                .links a {
+                    color: #4299e1;
+                    text-decoration: none;
+                }
+                .links a:hover {
+                    text-decoration: underline;
+                }
+                .todo-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem;
+                    background: #edf2f7;
+                    border-radius: 4px;
+                    margin: 0.5rem 0;
+                }
+                .todo-item::before {
+                    content: "⭕";
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🎮 Gift Grab API</h1>
+                <p>Welcome to the Gift Grab API - A backend service wrapper for its Nakama gaming server.</p>
+                
+                <div class="section">
+                    <h2>Documentation:</h2>
+                    <ul>
+                        <li><a href="/docs">Interactive API Documentation (Swagger UI)</a></li>
+                        <li><a href="/redoc">Alternative Documentation (ReDoc)</a></li>
+                    </ul>
+                </div>
 
-# @app.get("/player/{user_id}/stats")
-# async def get_player_stats(user_id: str, token: str):
-#     try:
-#         # Create session from token
-#         session = await nakama_client.session_restore(token)
-        
-#         # Get player stats from storage
-#         result = await nakama_client.read_storage_objects(
-#             session,
-#             [{"collection": "game_data", "key": "player_stats", "user_id": user_id}]
-#         )
-#         return result
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+                <div class="section">
+                    <h2>Available Endpoints:</h2>
+                    <div class="endpoint">
+                        <span class="method">POST</span>
+                        <code>/authenticateEmail</code>
+                        <p>Authenticate users with email and password</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>ToDo:</h2>
+                    <div class="todo-item">
+                        Endpoint - <strong>listLeaderboardRecords</strong>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Links & Resources:</h2>
+                    <div class="links">
+                        <p>📂 <a href="https://github.com/trey-a-hope/gift-grab" target="_blank">GitHub Repository</a></p>
+                        <p>📚 <a href="https://heroiclabs.com/docs/nakama/" target="_blank">Nakama Documentation</a></p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Contact:</h2>
+                    <p>Developer: Trey Hope</p>
+                    <p>Email: <a href="mailto:trey.a.hope@gmail.com">trey.a.hope@gmail.com</a></p>
+                </div>
+
+                <div class="section">
+                    <p><strong>Version:</strong> 1.0.0</p>
+                    <p><strong>Status:</strong> Online</p>
+                    <p><strong>Last Updated:</strong> December 2024</p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
