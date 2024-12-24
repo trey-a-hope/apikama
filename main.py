@@ -5,14 +5,15 @@ import base64
 from email_validator import validate_email, EmailNotValidError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from models.authenticate_email_response import AuthenticateEmailResponse
 from models.client_config import ClientConfig
 from models.email_auth_request import EmailAuthRequest
 
 # uvicorn main:app --reload
 
 app: FastAPI = FastAPI(
-    title='Gift Grab API',
-    description='Wrapper for the Nakama gaming server.',
+    title='Pykama',
+    description='Wrapper for the Nakama gaming server. (Need to update name.)',
     version="1.0.0",
     docs_url="/docs",   # Swagger UI endpoint
     redoc_url="/redoc"  # ReDoc endpoint
@@ -47,7 +48,10 @@ _proxy: str = 'https://radiant-fortress-74557-a19cc3a8e264.herokuapp.com/'
 #   }
 # }
 
-@app.post("/authenticateEmail")
+@app.post("/authenticateEmail", 
+          description='Authenticates a user\'s email credentials against the server.',
+          response_model=AuthenticateEmailResponse,
+          name='Authenticate Email')
 async def authenticateEmail(client: ClientConfig, request: EmailAuthRequest):
     try:
         auth: str = _encode_auth(f'{client.serverKey}:')
@@ -96,7 +100,7 @@ async def default():
     return """
     <html>
         <head>
-            <title>Gift Grab API</title>
+            <title>Pykama</title>
             <style>
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -155,9 +159,9 @@ async def default():
         </head>
         <body>
             <div class="container">
-                <h1>🎮 Gift Grab API</h1>
-                <p>Welcome to the Gift Grab API - A backend service wrapper for its Nakama gaming server.</p>
-                
+                <h1>🎮 Pykama</h1>
+                <p>A Python-based backend service wrapper for the Nakama game server.</p>
+                <p>Handles CORS issues to enable web browser compatibility.</p>
                 <div class="section">
                     <h2>Documentation:</h2>
                     <ul>
