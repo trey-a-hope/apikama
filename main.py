@@ -54,7 +54,7 @@ async def authenticateEmail(request: EmailAuthRequest):
         }
 
         endpoint = f'{_baseUrl}account/authenticate/email?username={request.username}'
-        response = requests.post(f'{_proxy}{endpoint}', headers=headers, json=data)
+        response = await requests.post(f'{_proxy}{endpoint}', headers=headers, json=data)
         response.raise_for_status()
         data = response.json()
         return data
