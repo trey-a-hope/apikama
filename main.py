@@ -16,9 +16,9 @@ from models.responses.get_account_response import GetAccountResponse
 
 server_string = "24.144.85.68:7350:0:defaultkey"
 
-_title: str = "Pykama API"
+_title: str = "Apikama"
 _description: str = (
-    f"A free API for the Nakama game server, built in Python. My server string: {server_string}"
+    f"A high-performance FastAPI service that seamlessly integrates with Nakama game servers."
 )
 _server_string_description: str = (
     f"String parsed to generate client config - {server_string}"
@@ -45,6 +45,7 @@ app.add_middleware(
 # TODO: This causes the two params to be seperated and throws off json parsing.
 #  = Path(title='Client Config', description='Configuration model for connecting to a Nakama server instance.')
 #  = Path(title='Email Auth Request', description='Request model for email-based authentication in Nakama.')
+
 
 class ApiTag(Enum):
     ACOUNT = "Acount"
@@ -265,7 +266,7 @@ async def default():
                 <div class="section">
                     <h2>Links & Resources:</h2>
                     <div class="links">
-                        <p>📂 <a href="https://github.com/trey-a-hope/gift-grab" target="_blank">GitHub Repository</a></p>
+                        <p>📂 <a href="https://github.com/trey-a-hope/apikama" target="_blank">GitHub Repository</a></p>
                         <p>📚 <a href="https://heroiclabs.com/docs/nakama/" target="_blank">Nakama Documentation</a></p>
                     </div>
                 </div>
