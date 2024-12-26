@@ -7,8 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from models.requests.email_create_request import EmailCreateRequest
 from models.responses.authenticate_email_response import AuthenticateEmailResponse
-from models.email_auth_request import EmailAuthRequest
+from models.requests.email_auth_request import EmailAuthRequest
 from enum import Enum
 from models.responses.get_account_response import GetAccountResponse
 from services.account_service import AccountService 
@@ -20,6 +21,8 @@ from services.auth_service import AuthService
 # Server configuration
 local_host = "127.0.0.1"  # Local development server
 prod_host = "24.144.85.68"  # Production server IP
+
+# 24.144.85.68:7350:0:defaultkey
 
 # Server connection string format: host:port:ssl:key
 server_string = f"{prod_host}:7350:0:defaultkey"
@@ -93,19 +96,34 @@ async def getAccount(
 
 # Authentication endpoints
 @app.post(
-   "/authenticateEmail",
+   "/loginEmail",
    tags=[ApiTag.AUTHENTICATION],
    description="Authenticates a user's email credentials against the server.",
    response_model=AuthenticateEmailResponse,
-   name="Authenticate Email",
+   name="Login Email",
 )
-async def authenticateEmail(
+async def loginEmail(
    server_string: str,  # Server connection details
    request: EmailAuthRequest,  # Email authentication request data
    auth: AuthService = Depends(get_auth_deps),
 ):
-   """Authenticates a user using email and password credentials"""
-   return await auth.authenticate_email(server_string, request)
+   """Authenticates a user's email credentials against the server."""
+   return await auth.login_email(server_string, request)
+
+@app.post(
+   "/signupEmail",
+   tags=[ApiTag.AUTHENTICATION],
+   description="Create a new user via email credentials against the server.",
+   response_model=AuthenticateEmailResponse,
+   name="Signup Email",
+)
+async def signupEmail(
+   server_string: str,  # Server connection details
+   request: EmailCreateRequest,  # Email authentication request data
+   auth: AuthService = Depends(get_auth_deps),
+):
+   """Create a new user via email credentials against the server."""
+   return await auth.signup_email(server_string, request)
 
 # General endpoints
 @app.get("/", response_class=HTMLResponse, tags=[ApiTag.GENERAL])
