@@ -100,7 +100,7 @@ class ApiTag(Enum):
 
 # Account endpoints
 @app.get(
-    "/getAccount",
+    "/account",
     tags=[ApiTag.ACOUNT],
     description="Retrieves the user's account information.",
     response_model=GetAccountResponse,
