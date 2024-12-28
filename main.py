@@ -24,14 +24,14 @@ from services.leaderboard_service import LeaderboardService
 # Command to run the server with hot reload
 # uvicorn main:app --reload
 
+# NOTE: apikama-prod cannot use the local game server.
+
 is_dev_mode = True
 
 # Server configuration
-local_host = "127.0.0.1"  # Local development server
-prod_host = "24.144.85.68"  # Production server IP
+local_host = "127.0.0.1"  # Local development server  127.0.0.1:7350:0:defaultkey
+prod_host = "24.144.85.68"  # Production server IP      24.144.85.68:7350:0:defaultkey
 
-# 24.144.85.68:7350:0:defaultkey
-# 127.0.0.1:7350:0:defaultkey
 
 # Server connection string format: host:port:ssl:key
 server_string = f"{local_host if is_dev_mode else prod_host}:7350:0:defaultkey"
