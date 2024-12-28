@@ -117,7 +117,7 @@ async def getAccount(
 
 # Authentication endpoints
 @app.post(
-    "/loginEmail",
+    "/login-email",
     tags=[ApiTag.AUTHENTICATION],
     description="Authenticates a user's email credentials against the server.",
     response_model=AuthenticateEmailResponse,
@@ -133,7 +133,7 @@ async def loginEmail(
 
 
 @app.post(
-    "/signupEmail",
+    "/signup-email",
     tags=[ApiTag.AUTHENTICATION],
     description="Create a new user via email credentials against the server.",
     response_model=AuthenticateEmailResponse,
