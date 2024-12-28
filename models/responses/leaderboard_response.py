@@ -6,3 +6,4 @@ from models.responses.leaderboard_record_response import LeaderboardRecordRespon
 
 class LeaderboardResponse(BaseModel):
     records: List[LeaderboardRecordResponse]
+    next_cursor: str

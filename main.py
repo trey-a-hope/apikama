@@ -2,8 +2,8 @@
 # Author: Trey Hope
 # Created: December 2024
 
-from typing import List
-from fastapi import Depends, FastAPI, Request
+from typing import List, Optional
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +24,8 @@ from services.leaderboard_service import LeaderboardService
 # Command to run the server with hot reload
 # uvicorn main:app --reload
 
+is_dev_mode = True
+
 # Server configuration
 local_host = "127.0.0.1"  # Local development server
 prod_host = "24.144.85.68"  # Production server IP
@@ -32,7 +34,8 @@ prod_host = "24.144.85.68"  # Production server IP
 # 127.0.0.1:7350:0:defaultkey
 
 # Server connection string format: host:port:ssl:key
-server_string = f"{prod_host}:7350:0:defaultkey"
+server_string = f"{local_host if is_dev_mode else prod_host}:7350:0:defaultkey"
+session_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI5OWJkZjIzMS01ODgxLTRkMGEtODRkMS05NDYyMzBkY2UxNzMiLCJ1c24iOiJUb255IFNvcHJhbm8iLCJleHAiOjE3MzU0NTA2ODF9.xgnNebwEP0xUQD9Mo-u5-vz50jaXRWx1HVoKhC11Fvs"
 
 # Application metadata
 _title: str = "Apikama"
@@ -104,8 +107,8 @@ class ApiTag(Enum):
     name="Get Account",
 )
 async def getAccount(
-    server_string: str,  # Server connection details
-    session_token: str,  # User's authentication token
+    server_string: str = Query(..., example=server_string),
+    session_token: str = Query(..., example=session_token),
     account: AccountService = Depends(get_account_deps),
 ):
     """Retrieves account information for an authenticated user"""
@@ -121,8 +124,8 @@ async def getAccount(
     name="Login Email",
 )
 async def loginEmail(
-    server_string: str,  # Server connection details
     request: EmailAuthRequest,  # Email authentication request data
+    server_string: str = Query(..., example=server_string),
     auth: AuthService = Depends(get_auth_deps),
 ):
     """Authenticates a user's email credentials against the server."""
@@ -137,8 +140,8 @@ async def loginEmail(
     name="Signup Email",
 )
 async def signupEmail(
-    server_string: str,  # Server connection details
     request: EmailCreateRequest,  # Email authentication request data
+    server_string: str = Query(..., example=server_string),
     auth: AuthService = Depends(get_auth_deps),
 ):
     """Create a new user via email credentials against the server."""
@@ -168,13 +171,21 @@ async def default(request: Request):
     name="Get Leaderboard Records",
 )
 async def getLeaderboardRecords(
-    server_string: str,  # Server connection details
-    session_token: str,  # User's authentication token
-    leaderboard_id: str,
+    limit: int,
+    server_string: str = Query(..., example=server_string),
+    session_token: str = Query(..., example=session_token),
+    leaderboard_id: str = Query(..., example="weekly_leaderboard"),
+    next_cursor: Optional[str] = Query(default=None),
     leaderboard: LeaderboardService = Depends(get_leaderboard_deps),
 ):
     """Retrieves leaderboard records"""
-    return await leaderboard.get_records(server_string, session_token, leaderboard_id)
+    return await leaderboard.get_records(
+        server_string,
+        session_token,
+        leaderboard_id,
+        limit,
+        next_cursor,
+    )
 
 
 @app.post(
@@ -185,13 +196,16 @@ async def getLeaderboardRecords(
     name="Create Leaderboard Record",
 )
 async def createLeaderboardRecord(
-    server_string: str,  # Server connection details
-    session_token: str,  # User's authentication token
-    leaderboard_id: str,
     request: LeaderboardCreateRequest,
+    server_string: str = Query(..., example=server_string),
+    session_token: str = Query(..., example=session_token),
+    leaderboard_id: str = Query(..., example="weekly_leaderboard"),
     leaderboard: LeaderboardService = Depends(get_leaderboard_deps),
 ):
     """Retrieves leaderboard records"""
     return await leaderboard.create_record(
-        server_string, session_token, leaderboard_id, request
+        server_string,
+        session_token,
+        leaderboard_id,
+        request,
     )

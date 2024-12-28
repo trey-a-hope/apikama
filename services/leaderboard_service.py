@@ -67,15 +67,42 @@ class LeaderboardService(BaseLeaderboardService):
         server_string: str,
         session_token: str,
         leaderboard_id: str,
+        limit: int,
+        next_cursor: str | None = None,
     ) -> LeaderboardResponse:
         try:
             endpoint = await self._setup_auth(server_string, leaderboard_id)
             headers = {**self.headers, "Authorization": f"Bearer {session_token}"}
-            response: Any = requests.get(endpoint, headers=headers)
+
+            # Apply required limit.
+            endpoint += f"?limit={limit}"
+
+            # Use optional cursor.
+            if next_cursor is None:
+                print("No cursor applied.")
+            else:
+                endpoint += f"&cursor={next_cursor}"
+
+            response: Any = requests.get(f"{endpoint}", headers=headers)
             response.raise_for_status()
             data = response.json()
+            print("---")
             print(data)
-            return data
+            print("---")
+            if not data:
+                return LeaderboardResponse(
+                    records=[],
+                    next_cursor="",
+                )
+
+            next_cursor = ""
+            if "next_cursor" in data:
+                next_cursor = data["next_cursor"]
+
+            return LeaderboardResponse(
+                records=data["records"],
+                next_cursor=next_cursor,
+            )
         except requests.exceptions.RequestException as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to get leaderboard records: {str(e)}"
