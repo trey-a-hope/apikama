@@ -8,7 +8,6 @@ class LeaderboardRecordResponse(BaseModel):
     username: str
     score: int
     num_score: int
-    # "metadata": "{}",
     create_time: str
     update_time: str
     expiry_time: str

@@ -83,7 +83,7 @@ class LeaderboardService(BaseLeaderboardService):
             else:
                 endpoint += f"&cursor={next_cursor}"
 
-            response: Any = requests.get(f"{endpoint}", headers=headers)
+            response: Any = requests.get(endpoint, headers=headers)
             response.raise_for_status()
             data = response.json()
             print("---")

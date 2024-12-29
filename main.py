@@ -106,7 +106,7 @@ class ApiTag(Enum):
     response_model=GetAccountResponse,
     name="Get Account",
 )
-async def getAccount(
+async def get_account(
     server_string: str = Query(..., example=server_string),
     session_token: str = Query(..., example=session_token),
     account: AccountService = Depends(get_account_deps),
@@ -123,7 +123,7 @@ async def getAccount(
     response_model=AuthenticateEmailResponse,
     name="Login Email",
 )
-async def loginEmail(
+async def login_email(
     request: EmailAuthRequest,  # Email authentication request data
     server_string: str = Query(..., example=server_string),
     auth: AuthService = Depends(get_auth_deps),
@@ -139,7 +139,7 @@ async def loginEmail(
     response_model=AuthenticateEmailResponse,
     name="Signup Email",
 )
-async def signupEmail(
+async def signup_email(
     request: EmailCreateRequest,  # Email authentication request data
     server_string: str = Query(..., example=server_string),
     auth: AuthService = Depends(get_auth_deps),
@@ -164,7 +164,7 @@ async def default(request: Request):
 
 # Leaderboard endpoints
 @app.get(
-    "/getLeaderboardRecords",
+    "/leaderboard",
     tags=[ApiTag.LEADERBOARD],
     description="Retrieves leaderboard records.",
     response_model=LeaderboardResponse,
