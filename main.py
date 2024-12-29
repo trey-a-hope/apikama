@@ -26,6 +26,7 @@ from services.leaderboard_service import LeaderboardService
 
 # NOTE: apikama-prod cannot use the local game server.
 
+
 is_dev_mode = True
 
 # Server configuration
