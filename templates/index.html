@@ -9,6 +9,8 @@
     <div class="container">
         <h1>🎮 {{title}}</h1>
         <p>{{description}}</p>
+        <p>This api serves as an unofficial wrapper around the current Nakama <a
+                href="https://heroiclabs.com/docs/nakama/api/client/">Client API</a></p>
         <p>Handles CORS issues to enable web browser compatibility.</p>
         <div class="section">
             <h2>Documentation:</h2>
@@ -30,11 +32,14 @@
         <div class="section">
             <h2>ToDo:</h2>
             <div class="todo-item">
-                Set apikama to a public repo; use environment variables if necessary.)
+                MUST determine how make the server_key more secretive, perhaps hash the value before sending it over
+                https.
             </div>
             <div class="todo-item">
-                Modify APIs to mesh with the ones on the client api listing. <a
-                    href="https://heroiclabs.com/docs/nakama/api/client/" target="_blank">here</a>)
+                Set apikama to a public repo; use environment variables if necessary.
+            </div>
+            <div class="todo-item">
+                Modify APIs to mesh with the ones on the client api listing.
             </div>
             <div class="todo-item">
                 Provide good documentation on Github read.ME and API docs page, (similar to <a
@@ -46,7 +51,6 @@
             <h2>Links & Resources:</h2>
             <div class="links">
                 <p>📂 <a href="https://github.com/trey-a-hope/apikama" target="_blank">GitHub Repository</a></p>
-                <p>📚 <a href="https://heroiclabs.com/docs/nakama/api/client/" target="_blank">Nakama Client API</a></p>
             </div>
         </div>
 
