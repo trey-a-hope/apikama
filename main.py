@@ -3,7 +3,7 @@
 # Created: December 2024
 
 from typing import List, Optional
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import Body, Depends, FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +19,7 @@ from models.responses.leaderboard_record_response import LeaderboardRecordRespon
 from models.responses.leaderboard_response import LeaderboardResponse
 from services.account_service import AccountService
 from services.auth_service import AuthService
+from services.encription_service import EncryptionService
 from services.leaderboard_service import LeaderboardService
 
 # Command to run the server with hot reload
@@ -36,13 +37,15 @@ prod_host = "24.144.85.68"  # Production server IP      24.144.85.68:7350:0:defa
 
 # Server connection string format: host:port:ssl:key
 server_string = f"{local_host if is_dev_mode else prod_host}:7350:0:defaultkey"
-session_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI5OWJkZjIzMS01ODgxLTRkMGEtODRkMS05NDYyMzBkY2UxNzMiLCJ1c24iOiJUb255IFNvcHJhbm8iLCJleHAiOjE3MzU0NTA2ODF9.xgnNebwEP0xUQD9Mo-u5-vz50jaXRWx1HVoKhC11Fvs"
+session_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIzMGYwYWQ3Yi1hZmY1LTQ0MGYtOGUzNC1kNzIyODE1YTQyNWMiLCJ1c24iOiJXeVdPdGlYdHVRIiwiZXhwIjoxNzM1NTM5NTI5fQ.r-BzrQWOICHWzJZchICmBiKln3wFnIe7X96XKeTpiT0"
 
 # Application metadata
 _title: str = "Apikama"
 _description: str = (
     f"A high-performance FastAPI service that seamlessly integrates with Nakama game servers."
 )
+_api_key_description: str = "API key for your Nakama server"
+_session_token_description: str = "Token of the currently authenticated user"
 
 # Initialize Jinja2 templating engine
 templates: Jinja2Templates = Jinja2Templates(
@@ -91,12 +94,48 @@ def get_leaderboard_deps() -> LeaderboardService:
     return LeaderboardService()
 
 
+def get_encryption_deps() -> EncryptionService:
+    """?"""
+    return EncryptionService()
+
+
 # API endpoint tags for documentation organization
 class ApiTag(Enum):
     ACOUNT = "Acount"
-    AUTHENTICATION = ("Authentication",)
-    LEADERBOARD = ("Leaderboard",)
+    AUTHENTICATION = "Authentication"
+    LEADERBOARD = "Leaderboard"
     GENERAL = "General"
+    UTIL = "Util"
+
+
+class SSLOption(str, Enum):
+    DISABLED = "0"
+    ENABLED = "1"
+
+
+@app.post(
+    "/api-keys/generate",
+    tags=[ApiTag.UTIL],
+    description="Generate an API key from your Nakama server configuration.",
+    name="Generate API Key",
+)
+async def generate_api_key(
+    # TODO: Add validation on host input.
+    host: str = Query(..., example="127.0.0.1", description="Your Nakama server host"),
+    # TODO: Add validation on port input.
+    port: str = Query(..., example="7350", description="Your Nakama server port"),
+    ssl: SSLOption = Query(..., example="0", description="SSL enabled (0 or 1)"),
+    # TODO: Add validation on server_key input.
+    server_key: str = Query(
+        ..., example="defaultkey", description="Your Nakama server key"
+    ),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
+):
+    server_config = f"{host}:{port}:{ssl.value}:{server_key}"
+    return {
+        "api_key": encryption_service.encrypt_server_string(server_config),
+        "server_config": server_config,
+    }
 
 
 # Account endpoints
@@ -108,11 +147,13 @@ class ApiTag(Enum):
     name="Get Account",
 )
 async def get_account(
-    server_string: str = Query(..., example=server_string),
-    session_token: str = Query(..., example=session_token),
+    api_key: str = Query(..., description=_api_key_description),
+    session_token: str = Query(..., description=_session_token_description),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
     account: AccountService = Depends(get_account_deps),
 ):
     """Retrieves account information for an authenticated user"""
+    server_string = encryption_service.decrypt_server_string(api_key)
     return await account.get_account(server_string, session_token)
 
 
@@ -126,10 +167,12 @@ async def get_account(
 )
 async def login_email(
     request: EmailAuthRequest,  # Email authentication request data
-    server_string: str = Query(..., example=server_string),
+    api_key: str = Query(..., description=_api_key_description),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
     auth: AuthService = Depends(get_auth_deps),
 ):
     """Authenticates a user's email credentials against the server."""
+    server_string = encryption_service.decrypt_server_string(api_key)
     return await auth.login_email(server_string, request)
 
 
@@ -142,10 +185,12 @@ async def login_email(
 )
 async def signup_email(
     request: EmailCreateRequest,  # Email authentication request data
-    server_string: str = Query(..., example=server_string),
+    api_key: str = Query(..., description=_api_key_description),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
     auth: AuthService = Depends(get_auth_deps),
 ):
     """Create a new user via email credentials against the server."""
+    server_string = encryption_service.decrypt_server_string(api_key)
     return await auth.signup_email(server_string, request)
 
 
@@ -173,13 +218,15 @@ async def default(request: Request):
 )
 async def getLeaderboardRecords(
     limit: int,
-    server_string: str = Query(..., example=server_string),
-    session_token: str = Query(..., example=session_token),
+    api_key: str = Query(..., description=_api_key_description),
+    session_token: str = Query(..., description=_session_token_description),
     leaderboard_id: str = Query(..., example="weekly_leaderboard"),
     next_cursor: Optional[str] = Query(default=None),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
     leaderboard: LeaderboardService = Depends(get_leaderboard_deps),
 ):
     """Retrieves leaderboard records"""
+    server_string = encryption_service.decrypt_server_string(api_key)
     return await leaderboard.get_records(
         server_string,
         session_token,
@@ -198,12 +245,14 @@ async def getLeaderboardRecords(
 )
 async def createLeaderboardRecord(
     request: LeaderboardCreateRequest,
-    server_string: str = Query(..., example=server_string),
-    session_token: str = Query(..., example=session_token),
+    api_key: str = Query(..., description=_api_key_description),
+    session_token: str = Query(..., description=_session_token_description),
     leaderboard_id: str = Query(..., example="weekly_leaderboard"),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
     leaderboard: LeaderboardService = Depends(get_leaderboard_deps),
 ):
     """Retrieves leaderboard records"""
+    server_string = encryption_service.decrypt_server_string(api_key)
     return await leaderboard.create_record(
         server_string,
         session_token,
