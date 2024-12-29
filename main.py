@@ -27,17 +27,7 @@ from services.leaderboard_service import LeaderboardService
 
 # NOTE: apikama-prod cannot use the local game server.
 
-
 is_dev_mode = True
-
-# Server configuration
-local_host = "127.0.0.1"  # Local development server  127.0.0.1:7350:0:defaultkey
-prod_host = "24.144.85.68"  # Production server IP      24.144.85.68:7350:0:defaultkey
-
-
-# Server connection string format: host:port:ssl:key
-server_string = f"{local_host if is_dev_mode else prod_host}:7350:0:defaultkey"
-session_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIzMGYwYWQ3Yi1hZmY1LTQ0MGYtOGUzNC1kNzIyODE1YTQyNWMiLCJ1c24iOiJXeVdPdGlYdHVRIiwiZXhwIjoxNzM1NTM5NTI5fQ.r-BzrQWOICHWzJZchICmBiKln3wFnIe7X96XKeTpiT0"
 
 # Application metadata
 _title: str = "Apikama"
