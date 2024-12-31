@@ -1,55 +1,102 @@
-from typing import Any
-from fastapi import HTTPException
+from typing import Dict
+from fastapi import HTTPException, status
 import requests
 from models.account import Account
 from models.client_config import ClientConfig
+from models.requests.update_account_request import UpdateAccountRequest
+from models.responses.delete_account_response import DeleteAccountResponse
+from models.responses.update_account_response import UpdateAccountResponse
 from models.user import User
 from utils.server_string_util import buildClientConfig, get_base_url
 
 
 class AccountService:
-    async def get_account(self, server_string: str, session_token: str) -> Account:
+    def __init__(self):
+        self.headers = {"Content-Type": "application/json"}
+
+    def _get_base_config(
+        self, server_string: str, session_token: str
+    ) -> tuple[str, Dict[str, str]]:
+        """Set up common configuration for API calls"""
+        client: ClientConfig = buildClientConfig(server_string=server_string)
+        base_url: str = get_base_url(
+            host=client.host, ssl=client.ssl, http_port=client.httpPort
+        )
+
+        headers = self.headers.copy()
+        headers["Authorization"] = f"Bearer {session_token}"
+
+        return base_url, headers
+
+    def _build_endpoint(self, base_url: str) -> str:
+        """Construct the endpoint URL"""
+        return f"{base_url}account"
+
+    def _handle_response_errors(
+        self, response: requests.Response, operation: str
+    ) -> None:
+        """Common error handling for API responses"""
+        if response.status_code == status.HTTP_401_UNAUTHORIZED:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User does not exist or unauthorized.",
+            )
         try:
-            client: ClientConfig = buildClientConfig(server_string=server_string)
-
-            baseUrl: str = get_base_url(
-                host=client.host, ssl=client.ssl, http_port=client.httpPort
-            )
-            print(f"Base URL: {baseUrl}")
-
-            headers: dict[str, str] = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {session_token}",
-            }
-            print(f"Headers: {headers}")
-
-            endpoint: str = f"{baseUrl}account"
-            print(f"Endpoint: {endpoint}")
-
-            response: Any = requests.get(endpoint, headers=headers)
-
             response.raise_for_status()
-
-            data = response.json()
-
-            print(data)
-
-            user = User(
-                id=data.get("user", {}).get("id", None),
-                username=data.get("user", {}).get("username", None),
-                displayName=data.get("user", {}).get("displayName", None),
-                avatarUrl=data.get("user", {}).get("avatarUrl", None),
-                langTag=data.get("user", {}).get("langTag", None),
-                online=data.get("user", {}).get("online", None),
-            )
-
-            return Account(
-                user=user,
-                email=data.get("email"),
-                wallet=data.get("wallet"),
-            )
         except requests.exceptions.RequestException as e:
             raise HTTPException(
-                status_code=500,
-                detail=f"Failed to get account: {str(e)}",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to {operation} account: {str(e)}.",
             )
+
+    def _parse_user_data(self, data: Dict) -> User:
+        """Parse user data from API response"""
+        user_data = data.get("user", {})
+        print(user_data)
+        return User(
+            id=user_data.get("id"),
+            username=user_data.get("username"),
+            displayName=user_data.get("displayName"),
+            avatarUrl=user_data.get("avatarUrl"),
+            langTag=user_data.get("langTag"),
+            online=user_data.get("online"),
+        )
+
+    async def get(self, server_string: str, session_token: str) -> Account:
+        """Get user account details"""
+        base_url, headers = self._get_base_config(server_string, session_token)
+        endpoint = self._build_endpoint(base_url)
+
+        response = requests.get(endpoint, headers=headers)
+        self._handle_response_errors(response, "get")
+
+        data = response.json()
+        user = self._parse_user_data(data)
+
+        return Account(user=user, email=data.get("email"), wallet=data.get("wallet"))
+
+    async def delete(
+        self, server_string: str, session_token: str
+    ) -> DeleteAccountResponse:
+        """Delete user account"""
+        base_url, headers = self._get_base_config(server_string, session_token)
+        endpoint = self._build_endpoint(base_url)
+        response = requests.delete(
+            endpoint,
+            headers=headers,
+        )
+        self._handle_response_errors(response, "delete")
+        return DeleteAccountResponse()
+
+    async def update(
+        self, server_string: str, session_token: str, update_data: UpdateAccountRequest
+    ) -> UpdateAccountResponse:
+        """Update user account details"""
+        base_url, headers = self._get_base_config(server_string, session_token)
+        endpoint = self._build_endpoint(base_url)
+
+        response = requests.put(
+            endpoint, headers=headers, json=update_data.model_dump(exclude_none=True)
+        )
+        self._handle_response_errors(response, "update")
+        return UpdateAccountResponse()

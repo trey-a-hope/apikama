@@ -2,12 +2,12 @@
 # Author: Trey Hope
 # Created: December 2024
 
-from typing import List, Optional
+from typing import Optional
 from fastapi import Body, Depends, FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from enums.api_tag import ApiTag
 from enums.ssl_option import SSLOption
 from models.account import Account
@@ -15,11 +15,14 @@ from models.requests.email_create_request import EmailCreateRequest
 from models.requests.leaderboard_create_request import LeaderboardCreateRequest
 from models.responses.authenticate_email_response import AuthenticateEmailResponse
 from models.requests.email_auth_request import EmailAuthRequest
-from enum import Enum
+from models.responses.delete_account_response import DeleteAccountResponse
 from models.responses.leaderboard_record_response import LeaderboardRecordResponse
-
 from models.responses.leaderboard_response import LeaderboardResponse
-from services.account_service import AccountService
+from models.responses.update_account_response import UpdateAccountResponse
+from services.account_service import (
+    AccountService,
+    UpdateAccountRequest,
+)
 from services.auth_service import AuthService
 from services.encription_service import EncryptionService
 from services.leaderboard_service import LeaderboardService
@@ -126,7 +129,40 @@ async def get_account(
     account_service: AccountService = Depends(get_account_deps),
 ) -> Account:
     server_string = encryption_service.decrypt_server_string(api_key)
-    return await account_service.get_account(server_string, session_token)
+    return await account_service.get(server_string, session_token)
+
+
+@app.delete(
+    "/account",
+    tags=[ApiTag.ACCOUNT],
+    response_model=DeleteAccountResponse,
+    summary="Delete the current user's account.",
+)
+async def delete_account(
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+    session_token: str = Query(..., description=ApiDescriptions.SESSION_TOKEN),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
+    account_service: AccountService = Depends(get_account_deps),
+) -> DeleteAccountResponse:
+    server_string = encryption_service.decrypt_server_string(api_key)
+    return await account_service.delete(server_string, session_token)
+
+
+@app.put(
+    "/account",
+    tags=[ApiTag.ACCOUNT],
+    response_model=UpdateAccountResponse,
+    summary="Update fields in the current user's account.",
+)
+async def update_account(
+    update_data: UpdateAccountRequest,
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+    session_token: str = Query(..., description=ApiDescriptions.SESSION_TOKEN),
+    encryption_service: EncryptionService = Depends(get_encryption_deps),
+    account_service: AccountService = Depends(get_account_deps),
+) -> UpdateAccountResponse:
+    server_string = encryption_service.decrypt_server_string(api_key)
+    return await account_service.update(server_string, session_token, update_data)
 
 
 # Authentication endpoints
