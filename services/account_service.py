@@ -1,15 +1,14 @@
 from typing import Any
 from fastapi import HTTPException
 import requests
+from models.account import Account
 from models.client_config import ClientConfig
-from models.responses.get_account_response import GetAccountResponse
+from models.user import User
 from utils.server_string_util import buildClientConfig, get_base_url
 
 
 class AccountService:
-    async def get_account(
-        self, server_string: str, session_token: str
-    ) -> GetAccountResponse:
+    async def get_account(self, server_string: str, session_token: str) -> Account:
         try:
             client: ClientConfig = buildClientConfig(server_string=server_string)
 
@@ -35,14 +34,22 @@ class AccountService:
 
             print(data)
 
-            return GetAccountResponse(
-                id=data["user"]["id"],
-                email=data["email"],
-                username=data["user"]["username"],
-                create_time=data["user"]["create_time"],
-                update_time=data["user"]["update_time"],
+            user = User(
+                id=data.get("user", {}).get("id", None),
+                username=data.get("user", {}).get("username", None),
+                displayName=data.get("user", {}).get("displayName", None),
+                avatarUrl=data.get("user", {}).get("avatarUrl", None),
+                langTag=data.get("user", {}).get("langTag", None),
+                online=data.get("user", {}).get("online", None),
+            )
+
+            return Account(
+                user=user,
+                email=data.get("email"),
+                wallet=data.get("wallet"),
             )
         except requests.exceptions.RequestException as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to get account: {str(e)}"
+                status_code=500,
+                detail=f"Failed to get account: {str(e)}",
             )

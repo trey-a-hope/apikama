@@ -8,12 +8,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from enums.api_tag import ApiTag
+from enums.ssl_option import SSLOption
+from models.account import Account
 from models.requests.email_create_request import EmailCreateRequest
 from models.requests.leaderboard_create_request import LeaderboardCreateRequest
 from models.responses.authenticate_email_response import AuthenticateEmailResponse
 from models.requests.email_auth_request import EmailAuthRequest
 from enum import Enum
-from models.responses.get_account_response import GetAccountResponse
 from models.responses.leaderboard_record_response import LeaderboardRecordResponse
 
 from models.responses.leaderboard_response import LeaderboardResponse
@@ -21,6 +23,7 @@ from services.account_service import AccountService
 from services.auth_service import AuthService
 from services.encription_service import EncryptionService
 from services.leaderboard_service import LeaderboardService
+from static.api_descriptions import ApiDescriptions
 
 # Command to run the server with hot reload
 # uvicorn main:app --reload
@@ -29,13 +32,7 @@ from services.leaderboard_service import LeaderboardService
 
 is_dev_mode = True
 
-# Application metadata
 _title: str = "Apikama"
-_description: str = (
-    f"A high-performance FastAPI service that seamlessly integrates with Nakama game servers."
-)
-_api_key_description: str = "API key for your Nakama server"
-_session_token_description: str = "Token of the currently authenticated user"
 
 # Initialize Jinja2 templating engine
 templates: Jinja2Templates = Jinja2Templates(
@@ -43,12 +40,13 @@ templates: Jinja2Templates = Jinja2Templates(
 )
 
 # Initialize FastAPI application with metadata and documentation endpoints
-app: FastAPI = FastAPI(
+app = FastAPI(
     title=_title,
-    description=_description,
+    description=ApiDescriptions.APP,
     version="1.0.0",
     docs_url="/docs",  # Swagger UI endpoint
     redoc_url="/redoc",  # ReDoc endpoint
+    swagger_ui_parameters={"docExpansion": "none"},
 )
 
 # Configure CORS middleware to allow cross-origin requests
@@ -89,20 +87,6 @@ def get_encryption_deps() -> EncryptionService:
     return EncryptionService()
 
 
-# API endpoint tags for documentation organization
-class ApiTag(Enum):
-    ACOUNT = "Acount"
-    AUTHENTICATION = "Authentication"
-    LEADERBOARD = "Leaderboard"
-    GENERAL = "General"
-    UTIL = "Util"
-
-
-class SSLOption(str, Enum):
-    DISABLED = "0"
-    ENABLED = "1"
-
-
 @app.post(
     "/api-keys/generate",
     tags=[ApiTag.UTIL],
@@ -131,20 +115,18 @@ async def generate_api_key(
 # Account endpoints
 @app.get(
     "/account",
-    tags=[ApiTag.ACOUNT],
-    description="Retrieves the user's account information.",
-    response_model=GetAccountResponse,
-    name="Get Account",
+    tags=[ApiTag.ACCOUNT],
+    response_model=Account,
+    summary="Fetch the current user's account.",
 )
 async def get_account(
-    api_key: str = Query(..., description=_api_key_description),
-    session_token: str = Query(..., description=_session_token_description),
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+    session_token: str = Query(..., description=ApiDescriptions.SESSION_TOKEN),
     encryption_service: EncryptionService = Depends(get_encryption_deps),
-    account: AccountService = Depends(get_account_deps),
-):
-    """Retrieves account information for an authenticated user"""
+    account_service: AccountService = Depends(get_account_deps),
+) -> Account:
     server_string = encryption_service.decrypt_server_string(api_key)
-    return await account.get_account(server_string, session_token)
+    return await account_service.get_account(server_string, session_token)
 
 
 # Authentication endpoints
@@ -157,7 +139,7 @@ async def get_account(
 )
 async def login_email(
     request: EmailAuthRequest,  # Email authentication request data
-    api_key: str = Query(..., description=_api_key_description),
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
     encryption_service: EncryptionService = Depends(get_encryption_deps),
     auth: AuthService = Depends(get_auth_deps),
 ):
@@ -175,7 +157,7 @@ async def login_email(
 )
 async def signup_email(
     request: EmailCreateRequest,  # Email authentication request data
-    api_key: str = Query(..., description=_api_key_description),
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
     encryption_service: EncryptionService = Depends(get_encryption_deps),
     auth: AuthService = Depends(get_auth_deps),
 ):
@@ -193,7 +175,7 @@ async def default(request: Request):
         {
             "request": request,  # Required by Jinja2
             "title": _title,
-            "description": _description,
+            "description": ApiDescriptions.APP,
         },
     )
 
@@ -208,8 +190,8 @@ async def default(request: Request):
 )
 async def getLeaderboardRecords(
     limit: int,
-    api_key: str = Query(..., description=_api_key_description),
-    session_token: str = Query(..., description=_session_token_description),
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+    session_token: str = Query(..., description=ApiDescriptions.SESSION_TOKEN),
     leaderboard_id: str = Query(..., example="weekly_leaderboard"),
     next_cursor: Optional[str] = Query(default=None),
     encryption_service: EncryptionService = Depends(get_encryption_deps),
@@ -235,8 +217,8 @@ async def getLeaderboardRecords(
 )
 async def createLeaderboardRecord(
     request: LeaderboardCreateRequest,
-    api_key: str = Query(..., description=_api_key_description),
-    session_token: str = Query(..., description=_session_token_description),
+    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+    session_token: str = Query(..., description=ApiDescriptions.SESSION_TOKEN),
     leaderboard_id: str = Query(..., example="weekly_leaderboard"),
     encryption_service: EncryptionService = Depends(get_encryption_deps),
     leaderboard: LeaderboardService = Depends(get_leaderboard_deps),
