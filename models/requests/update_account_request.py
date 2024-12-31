@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 class UpdateAccountRequest(BaseModel):
-    username: Optional[str] = None
-    display_name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    lang_tag: Optional[str] = None
+    username: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
+    lang_tag: str | None = None

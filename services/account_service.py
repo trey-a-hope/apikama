@@ -1,58 +1,28 @@
 from typing import Dict
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 import requests
 from models.account import Account
-from models.client_config import ClientConfig
 from models.requests.update_account_request import UpdateAccountRequest
 from models.responses.delete_account_response import DeleteAccountResponse
 from models.responses.update_account_response import UpdateAccountResponse
 from models.user import User
-from utils.server_string_util import buildClientConfig, get_base_url
+from services.base_api_service import BaseAPIService
+from utils.server_string_util import buildClientConfig
+from fastapi import HTTPException
+import requests
+from email_validator import EmailNotValidError
+from models.requests.email_auth_request import AccountEmail
+from models.session import Session
+from utils.server_string_util import buildClientConfig, encode_auth
+from utils.validators import validate_password
 
 
-class AccountService:
-    def __init__(self):
-        self.headers = {"Content-Type": "application/json"}
-
-    def _get_base_config(
-        self, server_string: str, session_token: str
-    ) -> tuple[str, Dict[str, str]]:
-        """Set up common configuration for API calls"""
-        client: ClientConfig = buildClientConfig(server_string=server_string)
-        base_url: str = get_base_url(
-            host=client.host, ssl=client.ssl, http_port=client.httpPort
-        )
-
-        headers = self.headers.copy()
-        headers["Authorization"] = f"Bearer {session_token}"
-
-        return base_url, headers
-
+class AccountService(BaseAPIService):
     def _build_endpoint(self, base_url: str) -> str:
-        """Construct the endpoint URL"""
         return f"{base_url}account"
 
-    def _handle_response_errors(
-        self, response: requests.Response, operation: str
-    ) -> None:
-        """Common error handling for API responses"""
-        if response.status_code == status.HTTP_401_UNAUTHORIZED:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User does not exist or unauthorized.",
-            )
-        try:
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to {operation} account: {str(e)}.",
-            )
-
     def _parse_user_data(self, data: Dict) -> User:
-        """Parse user data from API response"""
         user_data = data.get("user", {})
-        print(user_data)
         return User(
             id=user_data.get("id"),
             username=user_data.get("username"),
@@ -100,3 +70,45 @@ class AccountService:
         )
         self._handle_response_errors(response, "update")
         return UpdateAccountResponse()
+
+    async def authenticate_email(
+        self,
+        server_string: str,
+        request: AccountEmail,
+    ) -> Session:
+        if not validate_password(request.password):
+            raise HTTPException(
+                status_code=422,
+                detail="Password must be at least 8 characters long",
+            )
+
+        try:
+            base_url, _ = self._get_base_config(server_string, "")
+            client = buildClientConfig(server_string)
+            auth = encode_auth(f"{client.serverKey}:")
+            headers = self._build_auth_headers(auth)
+            data = {
+                "email": request.email,
+                "password": request.password,
+                "create": request.create,
+            }
+
+            response = requests.post(
+                f"{base_url}account/authenticate/email{f'?username={request.username}' if request.username else ''}",
+                headers=headers,
+                json=data,
+            )
+            self._handle_response_errors(response, "login")
+            res = response.json()
+
+            return Session(
+                created=res.get("created", None),
+                token=res["token"],
+                refresh_token=res["refresh_token"],
+            )
+
+        except EmailNotValidError:
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid email address format",
+            )

@@ -7,14 +7,13 @@ from fastapi import Body, Depends, FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from enums.api_tag import ApiTag
 from enums.ssl_option import SSLOption
 from models.account import Account
-from models.requests.email_create_request import EmailCreateRequest
 from models.requests.leaderboard_create_request import LeaderboardCreateRequest
-from models.responses.authenticate_email_response import AuthenticateEmailResponse
-from models.requests.email_auth_request import EmailAuthRequest
+from models.session import Session
+from models.requests.email_auth_request import AccountEmail
 from models.responses.delete_account_response import DeleteAccountResponse
 from models.responses.leaderboard_record_response import LeaderboardRecordResponse
 from models.responses.leaderboard_response import LeaderboardResponse
@@ -23,7 +22,6 @@ from services.account_service import (
     AccountService,
     UpdateAccountRequest,
 )
-from services.auth_service import AuthService
 from services.encription_service import EncryptionService
 from services.leaderboard_service import LeaderboardService
 from static.api_descriptions import ApiDescriptions
@@ -75,9 +73,9 @@ def get_account_deps() -> AccountService:
     return AccountService()
 
 
-def get_auth_deps() -> AuthService:
-    """Provides AuthService instance for dependency injection"""
-    return AuthService()
+# def get_auth_deps() -> AuthService:
+#     """Provides AuthService instance for dependency injection"""
+#     return AuthService()
 
 
 def get_leaderboard_deps() -> LeaderboardService:
@@ -165,41 +163,57 @@ async def update_account(
     return await account_service.update(server_string, session_token, update_data)
 
 
-# Authentication endpoints
 @app.post(
-    "/login-email",
-    tags=[ApiTag.AUTHENTICATION],
-    description="Authenticates a user's email credentials against the server.",
-    response_model=AuthenticateEmailResponse,
-    name="Login Email",
+    "/authenticate/email",
+    tags=[ApiTag.ACCOUNT],
+    response_model=Session,
+    summary="Authenticate a user with an email+password against the server.",
 )
-async def login_email(
-    request: EmailAuthRequest,  # Email authentication request data
+async def authenticate_email(
+    request: AccountEmail,
     api_key: str = Query(..., description=ApiDescriptions.API_KEY),
     encryption_service: EncryptionService = Depends(get_encryption_deps),
-    auth: AuthService = Depends(get_auth_deps),
-):
-    """Authenticates a user's email credentials against the server."""
+    account_service: AccountService = Depends(get_account_deps),
+) -> Session:
     server_string = encryption_service.decrypt_server_string(api_key)
-    return await auth.login_email(server_string, request)
+    return await account_service.authenticate_email(server_string, request)
 
 
-@app.post(
-    "/signup-email",
-    tags=[ApiTag.AUTHENTICATION],
-    description="Create a new user via email credentials against the server.",
-    response_model=AuthenticateEmailResponse,
-    name="Signup Email",
-)
-async def signup_email(
-    request: EmailCreateRequest,  # Email authentication request data
-    api_key: str = Query(..., description=ApiDescriptions.API_KEY),
-    encryption_service: EncryptionService = Depends(get_encryption_deps),
-    auth: AuthService = Depends(get_auth_deps),
-):
-    """Create a new user via email credentials against the server."""
-    server_string = encryption_service.decrypt_server_string(api_key)
-    return await auth.signup_email(server_string, request)
+# # Authentication endpoints
+# @app.post(
+#     "/login-email",
+#     tags=[ApiTag.AUTHENTICATION],
+#     description="Authenticates a user's email credentials against the server.",
+#     response_model=Session,
+#     name="Login Email",
+# )
+# async def login_email(
+#     request: EmailAuthRequest,  # Email authentication request data
+#     api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+#     encryption_service: EncryptionService = Depends(get_encryption_deps),
+#     auth: AuthService = Depends(get_auth_deps),
+# ):
+#     """Authenticates a user's email credentials against the server."""
+#     server_string = encryption_service.decrypt_server_string(api_key)
+#     return await auth.login_email(server_string, request)
+
+
+# @app.post(
+#     "/signup-email",
+#     tags=[ApiTag.AUTHENTICATION],
+#     description="Create a new user via email credentials against the server.",
+#     response_model=AuthenticateEmailResponse,
+#     name="Signup Email",
+# )
+# async def signup_email(
+#     request: EmailCreateRequest,  # Email authentication request data
+#     api_key: str = Query(..., description=ApiDescriptions.API_KEY),
+#     encryption_service: EncryptionService = Depends(get_encryption_deps),
+#     auth: AuthService = Depends(get_auth_deps),
+# ):
+#     """Create a new user via email credentials against the server."""
+#     server_string = encryption_service.decrypt_server_string(api_key)
+#     return await auth.signup_email(server_string, request)
 
 
 # General endpoints
